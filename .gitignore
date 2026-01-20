@@ -1,0 +1,85 @@
+# ==============================
+# GLOBAL OS FILES
+# ==============================
+.DS_Store
+Thumbs.db
+
+# ==============================
+# IDE / EDITORS
+# ==============================
+.vscode/
+.idea/
+*.swp
+
+# ==============================
+# PYTHON / DJANGO
+# ==============================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Python cache folders
+**/__pycache__/
+
+# ==============================
+# VIRTUAL ENVIRONMENTS
+# ==============================
+venv/
+env/
+.venv/
+
+# ==============================
+# ENVIRONMENT VARIABLES (SECURITY)
+# ==============================
+.env
+backend/.env
+frontend/.env
+
+# ==============================
+# DJANGO GENERATED FILES
+# ==============================
+backend/db.sqlite3
+
+backend/staticfiles/
+backend/media/
+
+backend/logs/
+*.log
+
+# Django collectstatic cache
+backend/static/
+
+# ==============================
+# MIGRATIONS CACHE ONLY (KEEP MIGRATIONS FILES)
+# ==============================
+backend/**/migrations/__pycache__/
+
+# ==============================
+# NODE / FRONTEND
+# ==============================
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+
+# ==============================
+# DOCKER
+# ==============================
+docker-data/
+postgres_data/
+*.pid
+
+# ==============================
+# TEST / COVERAGE
+# ==============================
+htmlcov/
+.coverage
+.pytest_cache/
+
+# ==============================
+# BUILD FILES
+# ==============================
+*.egg-info/
+build/
+dist/
