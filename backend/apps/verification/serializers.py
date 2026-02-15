@@ -61,6 +61,33 @@ class SendOTPSerializer(serializers.Serializer):
             raise serializers.ValidationError("This phone number is already verified with another account")
         
         return value
+    
+    def save(self):
+        """Send OTP to phone number"""
+        phone_number = self.validated_data['phone_number']
+        user = self.context['request'].user
+        phone_hash = encryption_service.hash_national_id(phone_number)
+        
+        # Get or create phone verification record
+        phone_verification, created = PhoneVerification.objects.get_or_create(
+            user=user,
+            defaults={
+                'phone_number': phone_number,
+                'phone_number_hash': phone_hash
+            }
+        )
+        
+        # Update phone number if changed
+        if not created and phone_verification.phone_number != phone_number:
+            phone_verification.phone_number = phone_number
+            phone_verification.phone_number_hash = phone_hash
+            phone_verification.is_verified = False
+            phone_verification.verified_at = None
+            phone_verification.save()
+        
+        # Send OTP
+        result = otp_service.send_otp(phone_number)
+        return result
 
 
 class VerifyOTPSerializer(serializers.Serializer):
@@ -71,6 +98,40 @@ class VerifyOTPSerializer(serializers.Serializer):
         validators=[validate_egyptian_phone_number]
     )
     otp = serializers.CharField(min_length=6, max_length=6)
+    
+    def validate(self, attrs):
+        """Verify OTP matches"""
+        phone_number = attrs['phone_number']
+        otp = attrs['otp']
+        
+        # Verify OTP
+        result = otp_service.verify_otp(phone_number, otp)
+        if not result['success']:
+            raise serializers.ValidationError(result['message'])
+        
+        return attrs
+    
+    def save(self):
+        """Mark phone as verified"""
+        phone_number = self.validated_data['phone_number']
+        user = self.context['request'].user
+        phone_hash = encryption_service.hash_national_id(phone_number)
+        
+        # Get or create phone verification
+        phone_verification, created = PhoneVerification.objects.get_or_create(
+            user=user,
+            defaults={
+                'phone_number': phone_number,
+                'phone_number_hash': phone_hash
+            }
+        )
+        
+        # Mark as verified
+        phone_verification.is_verified = True
+        phone_verification.verified_at = timezone.now()
+        phone_verification.save()
+        
+        return phone_verification
 
 
 class SellerVerificationSerializer(serializers.ModelSerializer):

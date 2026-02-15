@@ -20,6 +20,23 @@ phone_regex = RegexValidator(
 )
 
 
+def validate_egyptian_phone_number(value):
+    """
+    Validates Egyptian phone number format.
+    Accepts formats: +201XXXXXXXXX, 01XXXXXXXXX, 201XXXXXXXXX
+    """
+    # Remove spaces and dashes
+    cleaned = re.sub(r'[\s-]', '', value)
+    
+    # Check if it matches Egyptian phone pattern
+    if not re.match(r'^(\+?20|0)?1[0125]\d{8}$', cleaned):
+        raise ValidationError(
+            "Phone number must be a valid Egyptian mobile number (e.g., 01012345678 or +201012345678)"
+        )
+    return value
+
+
+
 # ============================
 # National ID Validator (Egyptian Format)
 # ============================
