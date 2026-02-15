@@ -15,17 +15,31 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path , include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django.urls import path, include
+from rest_framework_simplejwt.views import TokenRefreshView
+from apps.accounts.jwt import CustomTokenObtainPairView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView,
+)
+
+
 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-
-    path('api/', include('apps.accounts.urls')),
     
-    path('api/auth/login/', TokenObtainPairView.as_view()),
+    # API Documentation
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
-    path('api/auth/refresh/', TokenRefreshView.as_view()),
-
+    # API Endpoints
+    path("api/accounts/", include("apps.accounts.urls")),
+    # path("api/verification/", include("apps.verification.urls")),  # Temporarily disabled
+    
+    # JWT AUTH
+    path('api/auth/login/',  CustomTokenObtainPairView.as_view(), name="jwt_login"),
+    path('api/auth/refresh/', TokenRefreshView.as_view(), name="jwt_refresh"),
 ]

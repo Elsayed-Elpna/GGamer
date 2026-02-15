@@ -25,9 +25,11 @@ INSTALLED_APPS = [
     'django.contrib.sites',
 
     'rest_framework',
+    'drf_spectacular',
     'corsheaders',
 
     'apps.accounts',
+    'apps.verification',
 ]
 
 SITE_ID = 1
@@ -64,10 +66,16 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
 
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    
+    # Custom security middleware
+    'common.middleware.BannedUserMiddleware',
+    'common.middleware.SecurityLoggingMiddleware',
+    
     'django.contrib.messages.middleware.MessageMiddleware',
 
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 TEMPLATES = [
     {
@@ -143,5 +151,61 @@ CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_HTTPONLY = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Encryption key for sensitive data (National IDs)
+# Generate with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '')
+
+# REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+# Swagger/OpenAPI Configuration
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'GGamer Marketplace API',
+    'DESCRIPTION': 'Production-ready marketplace API for game boosting services with KYC verification',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'SCHEMA_PATH_PREFIX': r'/api/',
+    
+    # Security
+    'SECURITY': [{'bearerAuth': []}],
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'bearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+                'description': 'JWT token obtained from /api/auth/login/',
+            }
+        }
+    },
+    
+    # UI Configuration
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,
+        'displayOperationId': True,
+        'filter': True,
+        'docExpansion': 'none',
+    },
+    
+    # Tags for grouping endpoints
+    'TAGS': [
+        {'name': 'Authentication', 'description': 'JWT authentication endpoints'},
+        {'name': 'Accounts', 'description': 'User account management and profiles'},
+        {'name': 'Phone Verification', 'description': 'OTP-based phone number verification'},
+        {'name': 'Seller Verification', 'description': 'KYC and seller identity verification'},
+        {'name': 'Admin - Verification', 'description': 'Admin verification management'},
+    ],
+}
 
 LOGGING = BASE_LOGGING

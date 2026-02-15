@@ -1,34 +1,24 @@
-"""
-URL configuration for core project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
-
-from django.urls import path 
+from django.urls import path
 from .views import *
 
-
-app_name = 'accounts'
-
+app_name = "accounts"
 
 urlpatterns = [
-
-    path("register/", register_view),
-    path("me/", me_view),
-    path("avatar/", upload_avatar),
-    path("private-profile/", update_private_profile),
-
-    path("ban/<int:user_id>/", ban_user),
-
+    # Authentication
+    path("register/", register_view, name="register"),
+    
+    # User profile
+    path("me/", me_view, name="me"),
+    path("avatar/", upload_avatar, name="avatar"),
+    
+    # Public profile
+    path("public-profile/", update_public_profile, name="public_profile"),
+    
+    # Private profile (KYC)
+    path("private-profile/", private_profile_view, name="private_profile"),
+    
+    # Admin actions
+    path("ban/<int:user_id>/", ban_user, name="ban_user"),
+    path("unban/<int:user_id>/", unban_user, name="unban_user"),
 ]
+
