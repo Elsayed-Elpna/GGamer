@@ -49,7 +49,7 @@ class SellerVerification(models.Model):
     @property
     def national_id_decrypted(self):
         try:
-            return encryption_service.decrypt(self.national_id_encrypted)
+            return encryption_service.decrypt_national_id(self.national_id_encrypted)
         except:
             return None
     

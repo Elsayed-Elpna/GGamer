@@ -19,7 +19,7 @@ urlpatterns = [
     
     # Admin endpoints
     path('admin/pending/', views.list_pending_verifications, name='list_pending'),
-    path('admin/<int:verification_id>/', views.verification_details, name='verification_details'),
-    path('admin/<int:verification_id>/approve/', views.approve_verification, name='approve_verification'),
-    path('admin/<int:verification_id>/reject/', views.reject_verification, name='reject_verification'),
+    path('admin/details/<int:verification_id>/', views.verification_details, name='verification_details'),
+    path('admin/approve/<int:verification_id>/', views.approve_verification, name='approve_verification'),
+    path('admin/reject/<int:verification_id>/', views.reject_verification, name='reject_verification'),
 ]

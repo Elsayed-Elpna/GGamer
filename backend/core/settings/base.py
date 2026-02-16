@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'corsheaders',
 
+    'common',  # Common utilities and logging
     'apps.accounts',
     'apps.verification',
 ]
@@ -147,8 +148,21 @@ SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
 
+# Cookie Security Settings
 CSRF_COOKIE_HTTPONLY = True
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = True  # HTTPS only (set to False for development)
+CSRF_COOKIE_SECURE = True  # HTTPS only (set to False for development)
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# CORS Configuration (for cookie-based auth)
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",  # React development
+    "http://localhost:5173",  # Vite development
+    # Add production domain here
+]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -160,11 +174,24 @@ ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '')
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'common.authentication.CookieJWTAuthentication',  # Cookie-based JWT (primary)
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Header-based (fallback)
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    # SECURITY: Rate limiting to prevent abuse and brute force attacks
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',  # Anonymous users: 100 requests per day
+        'user': '1000/day',  # Authenticated users: 1000 requests per day
+        'auth': '10/hour',  # Authentication endpoints: 10 attempts per hour
+        'otp': '5/hour',  # OTP sending: 5 SMS per hour per user
+        'verification': '10/day',  # Verification submission: 10 per day
+    },
 }
 
 # Swagger/OpenAPI Configuration

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .warning-badge {
+            background: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .reason-box {
+            background: #fff;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Verification Requires Attention</h1>
+    </div>
+    <div class="content">
+        <p>Hello {{ user_email }},</p>
+        
+        <p>Thank you for submitting your seller verification. After careful review, we need you to address the following:</p>
+        
+        <div class="warning-badge">⚠ ACTION REQUIRED</div>
+        
+        <div class="reason-box">
+            <strong>Reason for rejection:</strong>
+            <p>{{ rejection_reason }}</p>
+        </div>
+        
+        <p><strong>What to do next:</strong></p>
+        <ul>
+            <li>Review the reason above carefully</li>
+            <li>Prepare the required documents or corrections</li>
+            <li>Resubmit your verification with the updated information</li>
+        </ul>
+        
+        <p>Ready to resubmit?</p>
+        <a href="{{ resubmit_url }}" class="button">Resubmit Verification</a>
+        
+        <p>If you have any questions or need clarification, please contact our support team.</p>
+        
+        <p>Best regards,<br>
+        The GGamer Team</p>
+    </div>
+    <div class="footer">
+        <p>© 2026 GGamer Marketplace. All rights reserved.</p>
+        <p>This is an automated message, please do not reply.</p>
+    </div>
+</body>
+</html>

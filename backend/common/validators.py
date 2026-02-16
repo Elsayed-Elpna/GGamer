@@ -11,67 +11,86 @@ import os
 
 
 # ============================
-# Phone Number Validator (Egyptian Format)
+# Phone Number Validator (International Format)
 # ============================
 
 phone_regex = RegexValidator(
-    regex=r'^(010|011|012|015)\d{8}$',
-    message="Phone number must be a valid Egyptian mobile number (e.g., 01012345678)"
+    regex=r'^\+?[1-9]\d{7,14}$',
+    message="Phone number must be in international format (e.g., +1234567890)"
 )
 
 
-def validate_egyptian_phone_number(value):
+def validate_international_phone_number(value):
     """
-    Validates Egyptian phone number format.
-    Accepts formats: +201XXXXXXXXX, 01XXXXXXXXX, 201XXXXXXXXX
+    Validates international phone number format.
+    Accepts formats with country code: +1234567890, +447700900123, etc.
+    Length: 8-15 digits (excluding + sign)
+    SECURITY: Rejects non-ASCII to prevent unicode bypass attacks.
     """
-    # Remove spaces and dashes
-    cleaned = re.sub(r'[\s-]', '', value)
+    # Remove spaces, dashes, and parentheses
+    cleaned = re.sub(r'[\s\-()]', '', value)
     
-    # Check if it matches Egyptian phone pattern
-    if not re.match(r'^(\+?20|0)?1[0125]\d{8}$', cleaned):
+    # SECURITY: Reject non-ASCII characters to prevent unicode bypass
+    if not cleaned.isascii():
         raise ValidationError(
-            "Phone number must be a valid Egyptian mobile number (e.g., 01012345678 or +201012345678)"
+            "Phone number must contain only ASCII characters"
         )
-    return value
+    
+    # Check if it matches international phone pattern
+    if not re.match(r'^\+?[1-9]\d{7,14}$', cleaned):
+        raise ValidationError(
+            "Phone number must be in international format with country code (e.g., +1234567890, +447700900123)"
+        )
+    
+    # SECURITY: Return cleaned value, not original
+    return cleaned
+
+
+# Backward compatibility alias
+validate_egyptian_phone_number = validate_international_phone_number
 
 
 
 # ============================
-# National ID Validator (Egyptian Format)
+# National ID Validator (International Format)
 # ============================
 
 national_id_regex = RegexValidator(
-    regex=r'^\d{14}$',
-    message="National ID must be exactly 14 digits"
+    regex=r'^[A-Z0-9\-]{5,20}$',
+    message="National ID must be 5-20 alphanumeric characters"
 )
 
 
-def validate_egyptian_national_id(value):
+def validate_national_id(value):
     """
-    Validates Egyptian National ID format and checksum.
-    Format: 14 digits (YYMMDDSSGGGGG)
-    - YY: Birth year
-    - MM: Birth month (01-12)
-    - DD: Birth day (01-31)
-    - SS: Governorate code
-    - GGGG: Sequence number
-    - Last digit: Gender (odd=male, even=female)
+    Validates National ID or Passport Number format.
+    Accepts alphanumeric IDs from any country.
+    Format: 5-20 characters (letters, numbers, hyphens allowed)
+    SECURITY: Returns normalized (uppercase) value to prevent case sensitivity bypass.
+    Examples:
+    - Egyptian ID: 12345678901234 (14 digits)
+    - US Passport: A12345678 (9 chars)
+    - UK Passport: AB1234567 (9 chars)
+    - Generic ID: ABC-123-456
     """
-    if not re.match(r'^\d{14}$', value):
-        raise ValidationError("National ID must be exactly 14 digits")
+    # Remove spaces and normalize to uppercase
+    cleaned = value.strip().upper()
     
-    # Validate month
-    month = int(value[3:5])
-    if month < 1 or month > 12:
-        raise ValidationError("Invalid month in National ID")
+    # Check length
+    if len(cleaned) < 5 or len(cleaned) > 20:
+        raise ValidationError("National ID must be between 5 and 20 characters")
     
-    # Validate day
-    day = int(value[5:7])
-    if day < 1 or day > 31:
-        raise ValidationError("Invalid day in National ID")
+    # Check if it contains only valid characters
+    if not re.match(r'^[A-Z0-9\-]+$', cleaned):
+        raise ValidationError("National ID must contain only letters, numbers, and hyphens")
     
-    return value
+    # SECURITY: Return normalized value to prevent case bypass
+    # This ensures hashing is consistent and duplicates are detected
+    return cleaned
+
+
+# Backward compatibility alias
+validate_egyptian_national_id = validate_national_id
 
 
 # ============================

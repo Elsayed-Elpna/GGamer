@@ -2,12 +2,13 @@
 Verification API views with comprehensive Swagger documentation.
 Production-ready with detailed examples and security.
 """
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample, OpenApiResponse
 from drf_spectacular.types import OpenApiTypes
+from common.throttling import OTPThrottle, OTPVerifyThrottle, VerificationThrottle
 from apps.verification.serializers import (
     PhoneVerificationSerializer,
     SendOTPSerializer,
@@ -19,7 +20,9 @@ from apps.verification.serializers import (
 )
 from apps.verification.models import PhoneVerification, SellerVerification
 from apps.verification.permissions import IsAdminOrSupport
+from apps.verification.utils import get_client_ip
 from common.services.logging_service import LoggingService
+from common.services.email_service import email_service
 from common.models import AdminActionLog
 
 
@@ -29,13 +32,13 @@ from common.models import AdminActionLog
     tags=['Phone Verification'],
     summary='Send OTP to phone number',
     description='''
-    Sends a 6-digit OTP code to the provided Egyptian phone number for verification.
+    Sends a 6-digit OTP code to the provided international phone number for verification.
     
     **Security Notes:**
     - Requires authentication
-    - Rate limited to prevent abuse
+    - Rate limited to 5 OTP requests per hour per user
     - OTP expires in 5 minutes
-    - Phone number must be Egyptian format (+201XXXXXXXXX or 01XXXXXXXXX)
+    - Phone number must be in international format with country code
     
     **Business Rules:**
     - Phone number cannot be verified by another user
@@ -44,13 +47,18 @@ from common.models import AdminActionLog
     request=SendOTPSerializer,
     examples=[
         OpenApiExample(
-            'Valid Egyptian Phone',
-            value={'phone_number': '+201012345678'},
+            'International Phone (US)',
+            value={'phone_number': '+1234567890'},
             request_only=True
         ),
         OpenApiExample(
-            'Alternative Format',
-            value={'phone_number': '01012345678'},
+            'International Phone (UK)',
+            value={'phone_number': '+447700900123'},
+            request_only=True
+        ),
+        OpenApiExample(
+            'International Phone (Egypt)',
+            value={'phone_number': '+201012345678'},
             request_only=True
         ),
     ],
@@ -73,7 +81,7 @@ from common.models import AdminActionLog
                 OpenApiExample(
                     'Invalid Phone Format',
                     value={
-                        'phone_number': ['Phone number must be a valid Egyptian mobile number (e.g., 01012345678 or +201012345678)']
+                        'phone_number': ['Phone number must be in international format with country code (e.g., +1234567890, +447700900123)']
                     }
                 ),
                 OpenApiExample(
@@ -112,6 +120,7 @@ from common.models import AdminActionLog
 )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([OTPThrottle])  # SECURITY: Limit to 5 OTP per hour
 def send_otp(request):
     """Send OTP to phone number for verification."""
     serializer = SendOTPSerializer(data=request.data, context={'request': request})
@@ -196,6 +205,7 @@ def send_otp(request):
 )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([OTPVerifyThrottle])  # SECURITY: Limit to 3 attempts per hour
 def verify_otp(request):
     """Verify OTP code for phone verification."""
     serializer = VerifyOTPSerializer(data=request.data, context={'request': request})
@@ -285,7 +295,7 @@ def phone_verification_status(request):
     - Documents are securely stored
     
     **Business Rules:**
-    - National ID must be 14 digits
+    - National ID must be 5-20 alphanumeric characters
     - National ID cannot be used by another verified seller
     - User can only have one verification submission
     - After submission, status is PENDING until admin reviews
@@ -295,9 +305,9 @@ def phone_verification_status(request):
         OpenApiExample(
             'Complete Submission',
             value={
-                'national_id': '12345678901234',
+                'national_id': 'A12345678',
                 'date_of_birth': '1990-01-15',
-                'billing_address': '123 Tahrir Square, Cairo, Egypt'
+                'billing_address': '123 Main Street, New York, USA'
             },
             request_only=True
         ),
@@ -321,7 +331,7 @@ def phone_verification_status(request):
                 OpenApiExample(
                     'Invalid National ID',
                     value={
-                        'national_id': ['National ID must be exactly 14 digits']
+                        'national_id': ['National ID must be between 5 and 20 characters']
                     }
                 ),
                 OpenApiExample(
@@ -338,7 +348,7 @@ def phone_verification_status(request):
                         'selfie_photo': ['This field is required.']
                     }
                 )
-            ]
+            ],
         ),
         401: OpenApiResponse(
             description='Authentication required'
@@ -347,6 +357,7 @@ def phone_verification_status(request):
 )
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@throttle_classes([VerificationThrottle])  # SECURITY: Limit to 10 submissions per day
 def submit_seller_verification(request):
     """Submit seller verification with KYC documents."""
     serializer = SellerVerificationSerializer(data=request.data, context={'request': request})
@@ -639,12 +650,24 @@ def approve_verification(request, verification_id):
         verification = SellerVerification.objects.get(id=verification_id)
         verification.approve(request.user)
         
-        # Log admin action
+        # Send email notification
+        email_service.send_verification_approved(verification.user.email)
+        
+        # Log admin action with IP
         LoggingService.log_admin_action(
             admin_user=request.user,
             action=AdminActionLog.Action.APPROVE_VERIFICATION,
             request=request,
             target_user=verification.user,
+            details={'verification_id': verification_id}
+        )
+        
+        # Log to audit trail with IP
+        VerificationAuditLog.objects.create(
+            user=verification.user,
+            action='SELLER_APPROVED',
+            performed_by=request.user,
+            ip_address=get_client_ip(request),
             details={'verification_id': verification_id}
         )
         

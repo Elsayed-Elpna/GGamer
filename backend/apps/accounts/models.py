@@ -4,7 +4,7 @@ from django.utils import timezone
 from .managers import UserManager
 from common.validators import (
     phone_regex,
-    validate_egyptian_national_id,
+    validate_national_id,
     FileSizeValidator,
     FileTypeValidator,
     username_regex,
@@ -145,14 +145,14 @@ class PrivateProfile(models.Model):
         unique=True,
         validators=[phone_regex],
         db_index=True,
-        help_text="Egyptian mobile number (e.g., 01012345678)"
+        help_text="International phone number with country code (e.g., +1234567890)"
     )
     national_id = models.CharField(
-        max_length=14,
+        max_length=20,
         unique=True,
-        validators=[validate_egyptian_national_id],
+        validators=[validate_national_id],
         db_index=True,
-        help_text="14-digit Egyptian National ID"
+        help_text="National ID or Passport Number (5-20 alphanumeric characters)"
     )
 
     # Verification status

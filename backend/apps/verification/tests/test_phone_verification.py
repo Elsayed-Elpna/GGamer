@@ -39,11 +39,12 @@ class PhoneVerificationTestCase(BaseVerificationTestCase, APIEndpointTestMixin):
         self.authenticate()
         
         invalid_phones = [
-            '123456',  # Too short
-            '+1234567890',  # Not Egyptian
-            '0101234567',  # Missing digit
+            '123456',  # Too short (less than 8 digits)
+            '12345',  # Too short
             'notaphone',  # Not a number
-            '+20201234567',  # Invalid Egyptian prefix
+            '123456789012345678',  # Too long (more than 15 digits)
+            '+0123456789',  # Starts with 0 after +
+            'abcdefghijklmnop',  # Letters only
         ]
         
         for phone in invalid_phones:

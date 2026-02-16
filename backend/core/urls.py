@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from apps.accounts.jwt import CustomTokenObtainPairView
+from apps.accounts.auth_views import logout_view, refresh_token_view
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
@@ -37,9 +38,11 @@ urlpatterns = [
 
     # API Endpoints
     path("api/accounts/", include("apps.accounts.urls")),
-    # path("api/verification/", include("apps.verification.urls")),  # Temporarily disabled
+    path("api/verification/", include("apps.verification.urls")),  # Re-enabled
     
     # JWT AUTH
     path('api/auth/login/',  CustomTokenObtainPairView.as_view(), name="jwt_login"),
-    path('api/auth/refresh/', TokenRefreshView.as_view(), name="jwt_refresh"),
+    path('api/auth/logout/', logout_view, name="jwt_logout"),
+    path('api/auth/refresh/', refresh_token_view, name="jwt_refresh"),
+    path('api/auth/refresh-fallback/', TokenRefreshView.as_view(), name="jwt_refresh_fallback"),  # Fallback for header-based auth
 ]

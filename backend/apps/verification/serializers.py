@@ -5,7 +5,7 @@ from rest_framework import serializers
 from apps.verification.models import PhoneVerification, SellerVerification, VerificationAuditLog
 from common.services.otp import otp_service
 from common.services.encryption import encryption_service
-from common.validators import validate_egyptian_phone_number, validate_egyptian_national_id
+from common.validators import validate_international_phone_number, validate_national_id
 from django.utils import timezone
 
 
@@ -14,7 +14,7 @@ class PhoneVerificationSerializer(serializers.ModelSerializer):
     
     phone_number = serializers.CharField(
         max_length=20,
-        validators=[validate_egyptian_phone_number],
+        validators=[validate_international_phone_number],
         write_only=True
     )
     phone_number_masked = serializers.SerializerMethodField()
@@ -43,7 +43,9 @@ class SendOTPSerializer(serializers.Serializer):
     
     phone_number = serializers.CharField(
         max_length=20,
-        validators=[validate_egyptian_phone_number]
+        min_length=8,
+        allow_blank=False,
+        validators=[validate_international_phone_number]
     )
     
     def validate_phone_number(self, value):
@@ -95,19 +97,38 @@ class VerifyOTPSerializer(serializers.Serializer):
     
     phone_number = serializers.CharField(
         max_length=20,
-        validators=[validate_egyptian_phone_number]
+        validators=[validate_international_phone_number]
     )
     otp = serializers.CharField(min_length=6, max_length=6)
     
     def validate(self, attrs):
-        """Verify OTP matches"""
+        """
+        Verify OTP matches.
+        SECURITY: Tracks failed attempts to prevent brute force.
+        """
+        from django.core.cache import cache
+        
         phone_number = attrs['phone_number']
         otp = attrs['otp']
+        
+        # SECURITY: Check failed attempt count
+        attempts_key = f'otp_failed_attempts:{phone_number}'
+        failed_attempts = cache.get(attempts_key, 0)
+        
+        if failed_attempts >= 3:
+            raise serializers.ValidationError(
+                "Too many failed attempts. Please request a new OTP."
+            )
         
         # Verify OTP
         result = otp_service.verify_otp(phone_number, otp)
         if not result['success']:
+            # Increment failed attempts
+            cache.set(attempts_key, failed_attempts + 1, timeout=3600)  # 1 hour
             raise serializers.ValidationError(result['message'])
+        
+        # Clear failed attempts on success
+        cache.delete(attempts_key)
         
         return attrs
     
@@ -138,9 +159,9 @@ class SellerVerificationSerializer(serializers.ModelSerializer):
     """Serializer for seller verification submission"""
     
     national_id = serializers.CharField(
-        max_length=14,
+        max_length=20,
         write_only=True,
-        validators=[validate_egyptian_national_id]
+        validators=[validate_national_id]
     )
     national_id_masked = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -204,6 +225,34 @@ class SellerVerificationSerializer(serializers.ModelSerializer):
                     })
         
         return attrs
+    
+    def create(self, validated_data):
+        """Create seller verification with encrypted national ID"""
+        # Extract national_id from validated_data
+        national_id = validated_data.pop('national_id')
+        
+        # Encrypt and hash national_id
+        national_id_encrypted = encryption_service.encrypt_national_id(national_id)
+        national_id_hash = encryption_service.hash_national_id(national_id)
+        
+        # Add user from context
+        validated_data['user'] = self.context['request'].user
+        validated_data['national_id_encrypted'] = national_id_encrypted
+        validated_data['national_id_hash'] = national_id_hash
+        
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        """Update seller verification with encrypted national ID"""
+        # Extract national_id if provided
+        national_id = validated_data.pop('national_id', None)
+        
+        if national_id:
+            # Encrypt and update
+            instance.national_id_encrypted = encryption_service.encrypt_national_id(national_id)
+            instance.national_id_hash = encryption_service.hash_national_id(national_id)
+        
+        return super().update(instance, validated_data)
 
 
 class SellerVerificationAdminSerializer(SellerVerificationSerializer):

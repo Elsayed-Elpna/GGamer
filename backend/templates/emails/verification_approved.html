@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
+        }
+        .content {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 0 0 8px 8px;
+        }
+        .success-badge {
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 Seller Verification Approved!</h1>
+    </div>
+    <div class="content">
+        <p>Hello {{ user_email }},</p>
+        
+        <p>We're excited to inform you that your seller verification has been <strong>approved</strong>!</p>
+        
+        <div class="success-badge">✓ VERIFIED SELLER</div>
+        
+        <p><strong>What happens next?</strong></p>
+        <ul>
+            <li>You can now create game boosting offers</li>
+            <li>Your profile will be marked as a verified seller</li>
+            <li>You'll have access to seller tools and analytics</li>
+        </ul>
+        
+        <p>Get started now:</p>
+        <a href="{{ dashboard_url }}" class="button">Go to Dashboard</a>
+        
+        <p>If you have any questions, feel free to contact our support team.</p>
+        
+        <p>Best regards,<br>
+        The GGamer Team</p>
+    </div>
+    <div class="footer">
+        <p>© 2026 GGamer Marketplace. All rights reserved.</p>
+        <p>This is an automated message, please do not reply.</p>
+    </div>
+</body>
+</html>
